@@ -8,7 +8,7 @@
 #
 
 JC = javac
-CP = "./class:./lib/commons-cli-1.4.jar:./lib/antlr-4.11.1-complete.jar"
+CP = "./class:./commons-cli-1.4.jar:./antlr-4.11.1-complete.jar"
 JCOPT = -d ./class -g -Xlint -cp $(CP)
 #JCOPT = -d ./class -g -cp $(CP)
 JCOPT1 = -d ./class -cp $(CP)
@@ -37,7 +37,7 @@ testtree:
 
 test:
 	echo `date` $@ $(n) >> build.log
-	java -jar AntlrPP.jar -inputFile testdata/$(n) -path ./src/ -fileExt .j -outputFile testdata/$(n).new
+	java -jar AntlrPP.jar -inputFile testdata/$(n) -path ./testdata/ -fileExt .j -outputFile testdata/$(n).new
 
 jar:
 	echo `date` $@ >> build.log

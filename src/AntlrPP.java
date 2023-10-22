@@ -65,9 +65,14 @@ public class AntlrPP {
 		*/
 		for (MungeParameters mp: mungeParameters) {
 			outputFileContent.append(cs.getText(mp.getInterval()));
-			System.out.println("processing " + pathToFile + mp.getFileName() + fileExtension);
-			if (mp.getFileName().length() > 0) {
-				outputFileContent.append(Files.readString(Paths.get(pathToFile, mp.getFileName() + fileExtension)));
+			Path aPath = Paths.get(pathToFile, mp.getFileName() + fileExtension);
+			System.out.println("processing " + aPath);
+			if (Files.exists(aPath)) {
+				if (mp.getFileName().length() > 0) {
+					outputFileContent.append(Files.readString(aPath));
+				}
+			} else {
+				System.out.println("unable to find " + aPath);
 			}
 		}
 
