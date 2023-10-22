@@ -1,3 +1,12 @@
+#
+# It's a little tricky getting this to make correctly.  LexerAdaptor and
+# ANTLRv4Lexer.g4 have a mutual dependency.  I got this to work for me
+# by commenting out lines in LexerAdaptor.java that refer to
+# ANTLRv4Lexer, compiling that, then generating and compiling
+# ANDLRv4Lexer.g4, then uncommenting out the lines in LexerAdaptor.java,
+# and finally recompiling that.
+#
+
 JC = javac
 CP = "./class:./lib/commons-cli-1.4.jar:./lib/antlr-4.11.1-complete.jar"
 JCOPT = -d ./class -g -Xlint -cp $(CP)
@@ -24,18 +33,11 @@ testrig:
 
 testtree:
 	echo `date` $@ $(n) >> build.log
-	java -cp ./class:.:./antlr-4.11.1-complete.jar org.antlr.v4.gui.TestRig ANTLRv4 startRule -tree -tokens < ./testdata/$(n)
+	java -cp ./class:.:./antlr-4.11.1-complete.jar org.antlr.v4.gui.TestRig ANTLRv4 grammarSpec -tree -tokens < ./testdata/$(n)
 
 test:
-ifeq ($(strip $(n)),)
-	echo `date` $@ >> build.log
-	echo `date`
-	./src/tester all
-	echo `date`
-else
 	echo `date` $@ $(n) >> build.log
-	./src/tester $(n)
-endif
+	java -jar AntlrPP.jar testdata/$(n) ./src/ .j
 
 jar:
 	echo `date` $@ >> build.log
