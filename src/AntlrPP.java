@@ -33,6 +33,13 @@ public class AntlrPP {
 		
 		ParseTreeWalker walker = new ParseTreeWalker();
 	
+		/*
+		This listener accumulates instances of Interval which indicate which
+		segments of the CharStream should be copied verbatim to the output
+		and String instances which are names of files whose contents is to be 
+		copied verbatim into the output.  This information is stored in the
+		ArrayList of instances of MungeParameters.
+		*/
 		ActionBlockListener listener = new ActionBlockListener(mungeParameters);
 	
 		System.out.println("----------walking tree with " + listener.getClass().getName());
@@ -46,6 +53,9 @@ public class AntlrPP {
 
 		int csEOF = cs.index();  //this should be the index of the EOF marker
 
+		/*
+		Loop through the mungeParameters and copy the data to the output (a StringBuilder).
+		*/
 		for (MungeParameters mp: mungeParameters) {
 			outputFileContent.append(cs.getText(mp.getInterval()));
 			if (mp.getFileName().length() > 0) {
@@ -53,6 +63,10 @@ public class AntlrPP {
 			}
 		}
 
+		/*
+		Now get the last part of the input file, that which comes after the last
+		actionBlock.
+		*/
 		int mpSize = mungeParameters.size();
 		mpSize--;
 		int lastStart = mungeParameters.get(mpSize).getEndStartIndex();
