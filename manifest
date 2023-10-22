@@ -1,0 +1,3 @@
+Main-Class: AntlrPP
+Class-Path: commons-cli-1.4.jar antlr-4.11.1-complete.jar
+
