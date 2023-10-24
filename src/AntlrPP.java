@@ -13,6 +13,7 @@ public class AntlrPP {
 	public static String outputFileName = null;
 	public static String pathToFile = null;
 	public static String fileExtension = null;
+	public static Boolean embedFiles = true;
 	
 	public static void main(String[] args) throws Exception {
 
@@ -47,7 +48,7 @@ public class AntlrPP {
 		copied verbatim into the output.  This information is stored in the
 		ArrayList of instances of MungeParameters.
 		*/
-		ActionBlockListener listener = new ActionBlockListener(mungeParameters);
+		ActionBlockListener listener = new ActionBlockListener(mungeParameters, embedFiles);
 	
 		System.out.println("walking parse tree with " + listener.getClass().getName());
 	
@@ -64,15 +65,19 @@ public class AntlrPP {
 		Loop through the mungeParameters and copy the data to the output (a StringBuilder).
 		*/
 		for (MungeParameters mp: mungeParameters) {
-			outputFileContent.append(cs.getText(mp.getInterval()));
-			Path aPath = Paths.get(pathToFile, mp.getFileName() + fileExtension);
-			System.out.println("processing " + aPath);
-			if (Files.exists(aPath)) {
-				if (mp.getFileName().length() > 0) {
+			if (mp.getInterval() != null) {
+				System.out.println("processing text " + mp.getInterval());
+				outputFileContent.append(cs.getText(mp.getInterval()));
+				System.out.println("outputFileContent = |" + outputFileContent + "|");
+			}
+			if (mp.getFileName().length() > 0) {
+				Path aPath = Paths.get(pathToFile, mp.getFileName() + fileExtension);
+				System.out.println("processing " + aPath);
+				if (Files.exists(aPath)) {
 					outputFileContent.append(Files.readString(aPath));
+				} else {
+					System.out.println("unable to find " + aPath);
 				}
-			} else {
-				System.out.println("unable to find " + aPath);
 			}
 		}
 
@@ -83,8 +88,12 @@ public class AntlrPP {
 		int mpSize = mungeParameters.size();
 		mpSize--;
 		int lastStart = mungeParameters.get(mpSize).getEndStartIndex();
-		outputFileContent.append(cs.getText(new Interval(lastStart, csEOF)));
+		Interval lastInterval = new Interval(lastStart, csEOF);
+		System.out.println("processing text " + lastInterval);
+		outputFileContent.append(cs.getText(lastInterval));
+		System.out.println("outputFileContent = |" + outputFileContent + "|");
 		
+		System.out.println("writing " + outputFileName);
 		BufferedWriter outputFile = new BufferedWriter(new FileWriter(outputFileName));
 		outputFile.write(new String(outputFileContent));
 		
@@ -105,12 +114,15 @@ public class AntlrPP {
 			, "path where included files are located");
 		Option fileExt = new Option("fileExt", true
 			, "extension to add to included file names, including dot");
+		Option embed = new Option("embed", true
+			, "[yes | no] embed files or just elide embed construct");
 		Option help = new Option("help", false, "print this message");
 
 		options.addOption(inputFile);
 		options.addOption(outputFile);
 		options.addOption(path);
 		options.addOption(fileExt);
+		options.addOption(embed);
 		options.addOption(help);
 
 		try {
@@ -149,10 +161,16 @@ public class AntlrPP {
 			pathToFile = line.getOptionValue("path");
 		}
 
-		if (!line.hasOption("fileExt") && !line.hasOption("path")) {
-			System.err.println("fileExt option or path option, or both is required");
-			formatter.printHelp( "AntlrPP", options, true );
-			System.exit(4);
+		if (line.hasOption("embed")) {
+			embedFiles = line.getOptionValue("embed").equalsIgnoreCase("YES");
+		}
+
+		if (embedFiles) {
+			if (!line.hasOption("fileExt") && !line.hasOption("path")) {
+				System.err.println("fileExt option or path option, or both is required");
+				formatter.printHelp( "AntlrPP", options, true );
+				System.exit(4);
+			}
 		}
 
 	}	
