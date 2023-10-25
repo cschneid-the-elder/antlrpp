@@ -6,4 +6,3 @@
 	public Boolean dsnutil_dsn_ws_char = false;
 	public Boolean dsnutil_db_ts_char = false;
 	public Boolean dsnutilLoad = false;
-

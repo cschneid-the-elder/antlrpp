@@ -10,7 +10,7 @@ public class ActionBlockListener extends ANTLRv4ParserBaseListener {
 	private ArrayList<MungeParameters> mungeParameters;
 	private int prevEndStartIndex = 0;
 	private Boolean embedFiles = true;
-	private Pattern pattern = Pattern.compile("\\h*@AntlrPP\\((?<fileName>.*)\\)\\h*\\v");
+	private Pattern pattern = Pattern.compile("\\v?\\h*@AntlrPP\\((?<fileName>\\S*)\\)\\h*");
 
 	public ActionBlockListener(
 			ArrayList<MungeParameters> mungeParameters
@@ -27,17 +27,6 @@ public class ActionBlockListener extends ANTLRv4ParserBaseListener {
 		StringBuilder actionText = new StringBuilder();
 
 		/*
-		Signal that we want to copy everything from the previous end point
-		to just after the beginning '{' of this actionBlock.
-		*/
-		mungeParameters.add(
-			new MungeParameters(
-				new Interval(prevEndStartIndex, beginStopIndex)
-				, new StringBuilder("")
-				, beginStopIndex + 1));
-		prevEndStartIndex = beginStopIndex + 1;
-		
-		/*
 		Get the contents of this actionBlock.
 		*/
 		for (TerminalNode tn: ctx.ACTION_CONTENT()) {
@@ -46,6 +35,34 @@ public class ActionBlockListener extends ANTLRv4ParserBaseListener {
 
 		String actionTextString = new String(actionText);
 		Matcher matcher = this.pattern.matcher(actionTextString);
+		Boolean foundMatch = matcher.find();
+
+		/*
+		Signal that we want to copy everything from the previous end point
+		to just after the beginning '{' of this actionBlock.
+		*/
+		if (foundMatch) {
+			mungeParameters.add(
+				new MungeParameters(
+					new Interval(prevEndStartIndex, beginStopIndex)
+					, new StringBuilder("")
+					, beginStopIndex + 1));
+			prevEndStartIndex = beginStopIndex + 1;
+		} else {
+			/*
+			No match found means the entire actionBlock will be elided, we
+			should notify someone.
+			*/
+			mungeParameters.add(
+				new MungeParameters(
+					new Interval(prevEndStartIndex, beginStopIndex)
+					, new StringBuilder("")
+					, endStartIndex
+					, ctx.BEGIN_ACTION().getSymbol().getLine()));
+			prevEndStartIndex = endStartIndex;
+			return; //I know this is considered bad, but it's clear
+		}
+		
 		int start = 0;
 		int end = 0;
 		
@@ -53,10 +70,10 @@ public class ActionBlockListener extends ANTLRv4ParserBaseListener {
 		If we have something in the actionBlock contents that matches
 		"@AntlrPP(...)" we want to create an instance of mungeParameters to
 		signal which portions of the actionBlock contents to copy, which
-		to throw away, and the name(s) of file(s) we wish copied into
+		to throw away, and the name of the file we wish copied into
 		the output stream.
 		*/
-		if (matcher.find()) {
+		if (foundMatch) {
 			start = matcher.start() + beginStopIndex;
 			end = matcher.end() + beginStopIndex;
 			String copyFileName = new String("");

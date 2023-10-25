@@ -18,6 +18,10 @@ If `embed Y` is specified (or `embed` is not specified at all) then the
 the `@AntlrPP(...)` construct will not be included in the target stream and 
 the content of _fileName_ will be copied into the target stream.
 
+The _fileName_ must not contain whitespace characters and the ending ) must
+be separated from any following characters by at least one whitespace
+character.  Yes, I'm using a regex to find the @AntlrPP construct.
+
 Code is at a proof of concept stage.
 
 Syntax:
