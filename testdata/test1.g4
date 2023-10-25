@@ -5,6 +5,7 @@ lexer grammar DB2zSQLLexer;
 	public String statementTerminator = new String("");
 	public int bracketNesting = 0;
 	public Boolean dsnutil = false;
+	@AntlrPP(file1)
 	public int dsnutilArgc = 0;
 	public Boolean dsnutil_dsn_ws_char = false;
 	public Boolean dsnutil_db_ts_char = false;

@@ -10,7 +10,7 @@ public class ActionBlockListener extends ANTLRv4ParserBaseListener {
 	private ArrayList<MungeParameters> mungeParameters;
 	private int prevEndStartIndex = 0;
 	private Boolean embedFiles = true;
-	private Pattern pattern = Pattern.compile("@AntlrPP\\((?<fileName>.*)\\)");
+	private Pattern pattern = Pattern.compile("\\h*@AntlrPP\\((?<fileName>.*)\\)\\h*\\v");
 
 	public ActionBlockListener(
 			ArrayList<MungeParameters> mungeParameters

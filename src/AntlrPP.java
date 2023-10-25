@@ -96,6 +96,7 @@ public class AntlrPP {
 		System.out.println("writing " + outputFileName);
 		BufferedWriter outputFile = new BufferedWriter(new FileWriter(outputFileName));
 		outputFile.write(new String(outputFileContent));
+		outputFile.close();
 		
 		return;
 	}
