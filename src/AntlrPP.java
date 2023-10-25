@@ -87,7 +87,7 @@ public class AntlrPP {
 		*/
 		int mpSize = mungeParameters.size();
 		mpSize--;
-		int lastStart = mungeParameters.get(mpSize).getEndStartIndex();
+		int lastStart = mungeParameters.get(mpSize).getEndStartIndex() + 1;
 		Interval lastInterval = new Interval(lastStart, csEOF);
 		System.out.println("processing text " + lastInterval);
 		outputFileContent.append(cs.getText(lastInterval));
@@ -111,11 +111,11 @@ public class AntlrPP {
 		Option outputFile = new Option("outputFile", true
 			, "name of a file in which to place the preprocessed grammar");
 		Option path = new Option("path", true
-			, "path where included files are located");
+			, "path where included files are located including trailing file system separator");
 		Option fileExt = new Option("fileExt", true
 			, "extension to add to included file names, including dot");
 		Option embed = new Option("embed", true
-			, "[yes | no] embed files or just elide embed construct");
+			, "[Y | n] embed files or just elide embed construct");
 		Option help = new Option("help", false, "print this message");
 
 		options.addOption(inputFile);
@@ -162,7 +162,7 @@ public class AntlrPP {
 		}
 
 		if (line.hasOption("embed")) {
-			embedFiles = line.getOptionValue("embed").equalsIgnoreCase("YES");
+			embedFiles = line.getOptionValue("embed").equalsIgnoreCase("Y");
 		}
 
 		if (embedFiles) {

@@ -35,7 +35,7 @@ public class ActionBlockListener extends ANTLRv4ParserBaseListener {
 				new Interval(prevEndStartIndex, beginStopIndex)
 				, new StringBuilder("")
 				, -1));
-		prevEndStartIndex = beginStopIndex;
+		prevEndStartIndex = beginStopIndex + 1;
 		
 		/*
 		Get the contents of this actionBlock.
@@ -67,7 +67,7 @@ public class ActionBlockListener extends ANTLRv4ParserBaseListener {
 				new MungeParameters(new Interval(prevEndStartIndex, start)
 									, new StringBuilder(copyFileName)
 									, -1));
-			prevEndStartIndex = end;
+			prevEndStartIndex = end + 1;
 		}
 		mungeParameters.add(
 			new MungeParameters(
