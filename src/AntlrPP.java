@@ -19,6 +19,12 @@ public class AntlrPP {
 
 		cli(args);
 		
+		if (embedFiles) {
+			System.out.println("files will be embedded");
+		} else {
+			System.out.println("files will not be embedded");
+		}
+
 		ArrayList<MungeParameters> mungeParameters = new ArrayList<>();
 		StringBuilder outputFileContent = new StringBuilder();
 		
@@ -65,10 +71,11 @@ public class AntlrPP {
 		Loop through the mungeParameters and copy the data to the output (a StringBuilder).
 		*/
 		for (MungeParameters mp: mungeParameters) {
+			System.out.println("mp: " + mp);
 			if (mp.getInterval() != null) {
 				System.out.println("processing text " + mp.getInterval());
 				outputFileContent.append(cs.getText(mp.getInterval()));
-				System.out.println("outputFileContent = |" + outputFileContent + "|");
+				//System.out.println("outputFileContent = |" + outputFileContent + "|");
 			}
 			if (mp.getFileName().length() > 0) {
 				Path aPath = Paths.get(pathToFile, mp.getFileName() + fileExtension);
@@ -87,11 +94,11 @@ public class AntlrPP {
 		*/
 		int mpSize = mungeParameters.size();
 		mpSize--;
-		int lastStart = mungeParameters.get(mpSize).getEndStartIndex() + 1;
+		int lastStart = mungeParameters.get(mpSize).getEndStartIndex();
 		Interval lastInterval = new Interval(lastStart, csEOF);
 		System.out.println("processing text " + lastInterval);
 		outputFileContent.append(cs.getText(lastInterval));
-		System.out.println("outputFileContent = |" + outputFileContent + "|");
+		//System.out.println("outputFileContent = |" + outputFileContent + "|");
 		
 		System.out.println("writing " + outputFileName);
 		BufferedWriter outputFile = new BufferedWriter(new FileWriter(outputFileName));

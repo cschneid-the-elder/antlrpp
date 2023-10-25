@@ -34,7 +34,7 @@ public class ActionBlockListener extends ANTLRv4ParserBaseListener {
 			new MungeParameters(
 				new Interval(prevEndStartIndex, beginStopIndex)
 				, new StringBuilder("")
-				, -1));
+				, beginStopIndex + 1));
 		prevEndStartIndex = beginStopIndex + 1;
 		
 		/*
@@ -50,13 +50,13 @@ public class ActionBlockListener extends ANTLRv4ParserBaseListener {
 		int end = 0;
 		
 		/*
-		While we have something in the actionBlock contents that matches
-		"@AntlrPP(...)" we want to create instances of mungeParameters to
+		If we have something in the actionBlock contents that matches
+		"@AntlrPP(...)" we want to create an instance of mungeParameters to
 		signal which portions of the actionBlock contents to copy, which
 		to throw away, and the name(s) of file(s) we wish copied into
 		the output stream.
 		*/
-		while(matcher.find()) {
+		if (matcher.find()) {
 			start = matcher.start() + beginStopIndex;
 			end = matcher.end() + beginStopIndex;
 			String copyFileName = new String("");
@@ -66,14 +66,21 @@ public class ActionBlockListener extends ANTLRv4ParserBaseListener {
 			mungeParameters.add(
 				new MungeParameters(new Interval(prevEndStartIndex, start)
 									, new StringBuilder(copyFileName)
-									, -1));
+									, endStartIndex));
 			prevEndStartIndex = end + 1;
 		}
-		mungeParameters.add(
-			new MungeParameters(
-				new Interval(prevEndStartIndex, endStartIndex)
-				, new StringBuilder("")
-				, endStartIndex));
+
+		if (!this.embedFiles) {
+			/*
+			Signal that the rest of the actionBlock should be copied into
+			the target stream.
+			*/
+			mungeParameters.add(
+				new MungeParameters(
+					new Interval(prevEndStartIndex, endStartIndex)
+					, new StringBuilder("")
+					, endStartIndex));
+		}
 		
 		prevEndStartIndex = endStartIndex;
 	}

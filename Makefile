@@ -37,7 +37,7 @@ testtree:
 
 test:
 	echo `date` $@ $(n) >> build.log
-	java -jar AntlrPP.jar -inputFile testdata/$(n) -path ./testdata/ -fileExt .j -outputFile testdata/$(n).new -embed n
+	java -jar AntlrPP.jar -inputFile testdata/$(n) -path ./testdata/ -fileExt .j -outputFile testdata/$(n).new -embed y
 
 jar:
 	echo `date` $@ >> build.log

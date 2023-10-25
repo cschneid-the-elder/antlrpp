@@ -31,5 +31,12 @@ public class MungeParameters {
 		return this.endStartIndex;
 	}
 
+	public String toString() {
+		return this.interval.toString()
+			+ " " + this.fileName
+			+ " " + Integer.valueOf(this.endStartIndex)
+			;
+	}
+
 }
 

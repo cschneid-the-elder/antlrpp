@@ -13,7 +13,14 @@ of the MIT license. See the LICENSE file for details.
 lexer grammar DB2zSQLLexer;
 
 @lexer::members {
-	DB2zSQL_members
+	@AntlrPP(DB2zSQL_members)
+	public String statementTerminator = new String("");
+	public int bracketNesting = 0;
+	public Boolean dsnutil = false;
+	public int dsnutilArgc = 0;
+	public Boolean dsnutil_dsn_ws_char = false;
+	public Boolean dsnutil_db_ts_char = false;
+	public Boolean dsnutilLoad = false;
 }
 
 channels { COMMENTS }
@@ -48,7 +55,8 @@ fragment Z:('z'|'Z');
 LPAREN
 	: '('
 	{
-		DB2zSQL_debug
+		@AntlrPP(DB2zSQL_debug)
+		//System.out.println(getLine() + ":" + getCharPositionInLine() + "|" + getText() + "|" + " mode " + modeNames[_mode] + " prevMode " + (_modeStack.isEmpty() ? "empty" : modeNames[_modeStack.peek()]));
 	}
 	->pushMode(DEFAULT_MODE)
 	;
@@ -56,22 +64,36 @@ LPAREN
 RPAREN
 	: ')'
 	{
-		DB2zSQL_RPAREN
+		@AntlrPP(DB2zSQL_RPAREN)
+		//System.out.println(getLine() + ":" + getCharPositionInLine() + "|" + getText() + "|" + " mode " + modeNames[_mode] + " prevMode " + (_modeStack.isEmpty() ? "empty" : modeNames[_modeStack.peek()]));
+		switch (_modeStack.peek()){
+			case DEFAULT_MODE :
+				popMode();
+				break;
+			case DSNUTIL_WHEN_MODE :
+				popMode();
+				popMode();
+				break;
+			default:
+				popMode();
+				popMode();
+				break;
+		}
 	}
 	;
 
 OPENSQBRACKET
 	: '['
-	{DB2zSQL_OPENSQBRACKET}
+	{@AntlrPP(DB2zSQL_OPENSQBRACKET) bracketNesting++;}
 	;
 
 CLOSESQBRACKET
 	: ']'
-	{DB2zSQL_CLOSESQBRACKET}
+	{@AntlrPP(DB2zSQL_CLOSESQBRACKET) bracketNesting--;}
 	;
 
 QUESTIONMARK
-	: '?' {DB2zSQL_QUESTIONMARK}?
+	: '?' {@AntlrPP(DB2zSQL_QUESTIONMARK) !getText().equals(statementTerminator)}?
 	;
 
 fragment BANG
@@ -125,7 +147,7 @@ CONCATOP
 
 CONCATOP_BBBB
 	: ']]'
-	{DB2zSQL_CONCATOP_BBBB}?
+	{bracketNesting == 0}?
 	->type(CONCATOP)
 	;
 
@@ -144,24 +166,34 @@ SEMICOLON
 COMMA
 	: ','
 	{
-		DB2zSQL_COMMA
+		if (dsnutil) {
+			dsnutilArgc++;
+			//System.out.println("dsnutilArgc = " + dsnutilArgc);
+		}
 	}
 	;
 
 DSNUTIL_OPEN_APOS
 	: '\''
-	{DB2zSQL_DSNUTIL_OPEN_APOS_1}?
+	{dsnutil && dsnutilArgc == 2}?
 	{
-		DB2zSQL_DSNUTIL_OPEN_APOS_2
+		//System.out.println("dsnutil && dsnutilArgc == 2 & \'");
+		/*
+		Setting this variable to false is necessary here because 
+		the EXEC SQL online Utility Control Statement may come back
+		through this token if a literal is present in any dynamic
+		SQL being processed.
+		*/
+		dsnutil = false;
 	}
 	->pushMode(DSNUTIL_MODE)
 	;
 
 DSNUTIL_OPEN_QUOTE
 	: '"'
-	{DB2zSQL_DSNUTIL_OPEN_QUOTE_1}?
+	{dsnutil && dsnutilArgc == 2}?
 	{
-		DB2zSQL_DSNUTIL_OPEN_QUOTE_2
+		//System.out.println("dsnutil && dsnutilArgc == 2 & \"");
 	}
 	->pushMode(DSNUTIL_MODE)
 	;
@@ -179,7 +211,7 @@ fragment HEXLITERAL
 fragment STRINGLITERAL
 	: (('"' (~["] | '""' | '\'')* '"')
 	| ('\'' (~['] | '\'\'' | '"')* '\''))
-	{DB2zSQL_STRINGLITERAL}?
+	{!(dsnutil && dsnutilArgc == 2)}?
 	;
 
 INTEGERLITERAL
@@ -208,7 +240,9 @@ SPUFI command to set the SQL statement terminator.
 SET_STATEMENT_TERMINATOR
 	: ('--#SET' WS 'TERMINATOR' WS ~[\n\r] WS? NEWLINE)
 	{
-		DB2zSQL_SET_STATEMENT_TERMINATOR
+		String text = getText();
+		String textStripped = text.stripTrailing();
+		statementTerminator = new String(textStripped.substring(textStripped.length() - 1));
 	}
 	->channel(COMMENTS)
 	;
@@ -4405,7 +4439,7 @@ APPLCOMPAT_LEVEL
 
 SQL_STATEMENT_TERMINATOR
 	: . 
-	{DB2zSQL_SQL_STATEMENT_TERMINATOR}?
+	{getText().equals(statementTerminator)}?
 	;
 
 /*
@@ -4437,7 +4471,13 @@ identifiers could then refer to both.  I'm not sure this is necessary.
 SQLIDENTIFIER
 	: [a-zA-Z0-9@#$_]+
 	{
-		DB2zSQL_SQLIDENTIFIER
+		if (getText().equalsIgnoreCase("DSNUTILV")
+		||  getText().equalsIgnoreCase("DSNUTILU")
+		||  getText().equalsIgnoreCase("DSNUTILS")) {
+			dsnutil = true;
+			dsnutilLoad = false;
+			//System.out.println("dsnutil matched");
+		}
 	}
 	;
 
@@ -4506,7 +4546,9 @@ DSNUTIL_DOUBLE_APOS
 DSNUTIL_CLOSE_APOS
 	: '\''
 	{
-		DB2zSQL_DSNUTIL_CLOSE_APOS
+		dsnutil = false;
+		dsnutilArgc = 0;
+		dsnutil_dsn_ws_char = false;
 	}
 	->popMode
 	;
@@ -4518,7 +4560,9 @@ DSNUTIL_DOUBLE_QUOTE
 DSNUTIL_CLOSE_QUOTE
 	: '"'
 	{
-		DB2zSQL_DSNUTIL_CLOSE_APOS
+		dsnutil = false;
+		dsnutilArgc = 0;
+		dsnutil_dsn_ws_char = false;
 	}
 	->popMode
 	;
@@ -4526,7 +4570,7 @@ DSNUTIL_CLOSE_QUOTE
 DSNUTIL_LPAREN
 	: LPAREN
 	{
-		DB2zSQL_debug
+		//System.out.println(getLine() + ":" + getCharPositionInLine() + "|" + getText() + "|" + " mode " + modeNames[_mode] + " prevMode " + (_modeStack.isEmpty() ? "empty" : modeNames[_modeStack.peek()]));
 	}
 	->pushMode(DSNUTIL_PAREN_MODE)
 	;
@@ -4534,7 +4578,7 @@ DSNUTIL_LPAREN
 DSNUTIL_RPAREN
 	: RPAREN
 	{
-		DB2zSQL_debug
+		//System.out.println(getLine() + ":" + getCharPositionInLine() + "|" + getText() + "|" + " mode " + modeNames[_mode] + " prevMode " + (_modeStack.isEmpty() ? "empty" : modeNames[_modeStack.peek()]));
 	}
 	;
 
@@ -4695,7 +4739,11 @@ DSNUTIL_RESET_ACCESSPATH
 DSNUTIL_WHEN
 	: WHEN
 	{
-		DB2zSQL_DSNUTIL_WHEN
+		if (dsnutilLoad) {
+			break;
+		} else {
+			pushMode(DSNUTIL_WHEN_MODE);
+		}
 	}
 	;
 
@@ -5789,14 +5837,14 @@ DSNUTIL_TRUNCATE
 DSNUTIL_LOAD
 	: L O A D 
 	{
-		DB2zSQL_DSNUTIL_LOAD
+		dsnutilLoad = true;
 	}
 	;
 
 DSNUTIL_LOAD_DATA
 	: L O A D (WS | NEWLINE)+ D A T A
 	{
-		DB2zSQL_DSNUTIL_LOAD
+		dsnutilLoad = true;
 	}
 	;
 
@@ -5815,7 +5863,7 @@ DSNUTIL_TRANSIDOVERRIDE
 DSNUTIL_REORG
 	: R E O R G
 	{
-		DB2zSQL_DSNUTIL_REORG
+		dsnutilLoad = false;
 	}
 	;
 
@@ -6490,7 +6538,9 @@ DSNUTIL_WHEN_WS
 DSNUTIL_WHEN_LPAREN
 	: LPAREN
 	{
-		DB2zSQL_DSNUTIL_WHEN_LPAREN
+		//System.out.println(getLine() + ":" + getCharPositionInLine() + "|" + getText() + "|" + " mode " + modeNames[_mode] + " prevMode " + (_modeStack.isEmpty() ? "empty" : modeNames[_modeStack.peek()]));
+		dsnutilArgc = 0;
+		dsnutil = false;
 	}
 	->pushMode(DEFAULT_MODE) //we're not coming back here
 	;
@@ -6617,7 +6667,7 @@ allowed.
 DSNUTIL_DSN_LPAREN
 	: LPAREN
 	{
-		DB2zSQL_debug
+		//System.out.println(getLine() + ":" + getCharPositionInLine() + "|" + getText() + "|" + " mode " + modeNames[_mode] + " prevMode " + (_modeStack.isEmpty() ? "empty" : modeNames[_modeStack.peek()]));
 	}
 	->pushMode(DSNUTIL_PAREN_MODE)
 	;
@@ -6654,28 +6704,58 @@ apostrophe for the entire parameter.
 
 DSNUTIL_DSN_WS_DOUBLE_APOS
 	: '\'\''
-	{DB2zSQL_DSNUTIL_DSN_WS_DOUBLE_APOS}?
+	{!dsnutil_dsn_ws_char}?
 	->pushMode(DSNUTIL_DOUBLE_APOS_MODE)
 	;
 
 DSNUTIL_DSN_WS_OPEN_APOS
 	: '\''
 	{
-		DB2zSQL_DSNUTIL_DSN_WS_OPEN_APOS
+		if (dsnutil_dsn_ws_char) {
+			/*
+			We are not within apostrophes, this is the
+			closing apostrophe of the whole third
+			parameter for SYSPROC.DSNUTILx.
+			*/
+			dsnutil = false;
+			dsnutilArgc = 0;
+			dsnutil_dsn_ws_char = false;
+			setType(DSNUTIL_CLOSE_APOS);
+			popMode(); //back to DSNUTIL_DSN_MODE
+			popMode(); //back to DSNUTIL_MODE
+			popMode(); //back to DEFAULT_MODE
+		} else {
+			pushMode(DSNUTIL_APOS_MODE); //we don't come back here
+		}
 	}
 	;
 
 DSNUTIL_DSN_WS_OPEN_QUOTE
 	: '"'
 	{
-		DB2zSQL_DSNUTIL_DSN_WS_OPEN_QUOTE
+		if (dsnutil_dsn_ws_char) {
+			/*
+			We are not within quotes, this is the
+			closing quote of the whole third
+			parameter for SYSPROC.DSNUTILx.
+			*/
+			dsnutil = false;
+			dsnutilArgc = 0;
+			dsnutil_dsn_ws_char = false;
+			setType(DSNUTIL_CLOSE_QUOTE);
+			popMode(); //back to DSNUTIL_DSN_MODE
+			popMode(); //back to DSNUTIL_MODE
+			popMode(); //back to DEFAULT_MODE
+		} else {
+			pushMode(DSNUTIL_QUOTE_MODE); //we don't come back here
+		}
 	}
 	;
 
 DSNUTIL_DSN_WS_LPAREN
 	: LPAREN
 	{
-		DB2zSQL_debug
+		//System.out.println(getLine() + ":" + getCharPositionInLine() + "|" + getText() + "|" + " mode " + modeNames[_mode] + " prevMode " + (_modeStack.isEmpty() ? "empty" : modeNames[_modeStack.peek()]));
 	}
 	->pushMode(DSNUTIL_PAREN_MODE)
 	;
@@ -6683,14 +6763,14 @@ DSNUTIL_DSN_WS_LPAREN
 DSNUTIL_DSN_WS_WS
 	: (WS | NEWLINE)+
 	{
-		DB2zSQL_DSNUTIL_DSN_WS_WS
+		dsnutil_dsn_ws_char = false;
 	}
 	->channel(HIDDEN),popMode,popMode;
 
 DSNUTIL_DSN_WS_CHAR
 	: DSNUTIL_DSN_CHAR
 	{
-		DB2zSQL_DSNUTIL_DSN_WS_CHAR
+		dsnutil_dsn_ws_char = true;
 	}
 	//->type(DSNUTIL_IDENTIFIER)
 	;
@@ -6728,15 +6808,15 @@ have arrived because we're on the right hand side of an equal sign.
 
 DSNUTIL_DB_TS_WS_LEADING
 	: (WS | NEWLINE)+
-	{DB2zSQL_DSNUTIL_DB_TS_WS_LEADING}? 
+	{!dsnutil_db_ts_char}? 
 	->channel(HIDDEN)
 	;
 
 DSNUTIL_DB_TS_WS_TERMINATING
 	: (WS | NEWLINE)+
-	{DB2zSQL_DSNUTIL_DB_TS_WS_TERMINATING_1}?
+	{dsnutil_db_ts_char}?
 	{
-		DB2zSQL_DSNUTIL_DB_TS_WS_TERMINATING_2
+		dsnutil_db_ts_char = false;
 	}
 	->channel(HIDDEN),popMode
 	;
@@ -6744,21 +6824,67 @@ DSNUTIL_DB_TS_WS_TERMINATING
 DSNUTIL_DB_TS_APOS
 	: '\''
 	{
-		DB2zSQL_DSNUTIL_DB_TS_APOS
+		if (dsnutil_db_ts_char) {
+			dsnutil = false;
+			dsnutilArgc = 0;
+			dsnutil_dsn_ws_char = false;
+			dsnutil_db_ts_char = false;
+			setType(DSNUTIL_CLOSE_APOS);
+			switch(_modeStack.peek()) {
+				case DSNUTIL_PAREN_MODE :
+					popMode();
+					break;
+				case DSNUTIL_EXCEPTION_MODE :
+					popMode(); //back to DSNUTIL_EXCEPTION_MODE
+					popMode(); //back to DSNUTIL_MODE
+					popMode(); //back to DEFAULT_MODE
+					break;
+				default :
+					popMode(); //back to DSNUTIL_MODE
+					popMode(); //back to DEFAULT_MODE
+					break;
+			}
+		} else {
+			pushMode(DSNUTIL_APOS_MODE);
+			dsnutil_db_ts_char = true;
+		}
 	}
 	;
 
 DSNUTIL_DB_TS_QUOTE
 	: '"'
 	{
-		DB2zSQL_DSNUTIL_DB_TS_QUOTE
+		if (dsnutil_db_ts_char) {
+			dsnutil = false;
+			dsnutilArgc = 0;
+			dsnutil_dsn_ws_char = false;
+			dsnutil_db_ts_char = false;
+			setType(DSNUTIL_CLOSE_QUOTE);
+			switch(_modeStack.peek()) {
+				case DSNUTIL_PAREN_MODE :
+					popMode();
+					break;
+				case DSNUTIL_EXCEPTION_MODE :
+					popMode(); //back to DSNUTIL_EXCEPTION_MODE
+					popMode(); //back to DSNUTIL_MODE
+					popMode(); //back to DEFAULT_MODE
+					break;
+				default :
+					popMode(); //back to DSNUTIL_MODE
+					popMode(); //back to DEFAULT_MODE
+					break;
+			}
+		} else {
+			pushMode(DSNUTIL_QUOTE_MODE);
+			dsnutil_db_ts_char = true;
+		}
 	}
 	;
 
 DSNUTIL_DB_TS_DOT
 	: DOT
 	{
-		DB2zSQL_DSNUTIL_DB_TS_DOT
+		dsnutil_db_ts_char = false;
 	}
 	//->type(DSNUTIL_IDENTIFIER)
 	;
@@ -6766,7 +6892,8 @@ DSNUTIL_DB_TS_DOT
 DSNUTIL_DB_TS_LPAREN
 	: '('
 	{
-		DB2zSQL_DSNUTIL_DB_TS_LPAREN
+		//System.out.println(getLine() + ":" + getCharPositionInLine() + "|" + getText() + "|" + " mode " + modeNames[_mode] + " prevMode " + (_modeStack.isEmpty() ? "empty" : modeNames[_modeStack.peek()]));
+		dsnutil_db_ts_char = false;
 	}
 	->pushMode(DSNUTIL_PAREN_MODE) //we're not coming back here
 	;
@@ -6774,14 +6901,24 @@ DSNUTIL_DB_TS_LPAREN
 DSNUTIL_DB_TS_RPAREN
 	: ')'
 	{
-		DB2zSQL_DSNUTIL_DB_TS_RPAREN
+		//System.out.println(getLine() + ":" + getCharPositionInLine() + "|" + getText() + "|" + " mode " + modeNames[_mode] + " prevMode " + (_modeStack.isEmpty() ? "empty" : modeNames[_modeStack.peek()]));
+		dsnutil_db_ts_char = false;
+		switch(_modeStack.peek()) {
+			case DSNUTIL_PAREN_MODE :
+				popMode(); //back to DSNUTIL_PAREN_MODE
+				popMode(); //back to DSNUTIL_MODE
+				break;
+			default :
+				popMode(); //back to "parent" mode
+				break;
+		}
 	}
 	;
 
 DSNUTIL_DB_TS_DELETE
 	: DSNUTIL_DELETE
 	{
-		DB2zSQL_dsnutil_db_ts_char_true
+		dsnutil_db_ts_char = true;
 	}
 	->type(DSNUTIL_DELETE)
 	;
@@ -6789,7 +6926,7 @@ DSNUTIL_DB_TS_DELETE
 DSNUTIL_DB_TS_SAMPLE
 	: DSNUTIL_SAMPLE
 	{
-		DB2zSQL_dsnutil_db_ts_char_true
+		dsnutil_db_ts_char = true;
 	}
 	->type(DSNUTIL_SAMPLE)
 	;
@@ -6797,7 +6934,7 @@ DSNUTIL_DB_TS_SAMPLE
 DSNUTIL_DB_TS_TABLESAMPLE
 	: DSNUTIL_TABLESAMPLE
 	{
-		DB2zSQL_dsnutil_db_ts_char_true
+		dsnutil_db_ts_char = true;
 	}
 	->type(DSNUTIL_TABLESAMPLE)
 	;
@@ -6805,7 +6942,7 @@ DSNUTIL_DB_TS_TABLESAMPLE
 DSNUTIL_DB_TS_IDENTIFIER
 	: ~[ \n\r.,;)('"]+
 	{
-		DB2zSQL_dsnutil_db_ts_char_true
+		dsnutil_db_ts_char = true;
 	}
 	//->type(DSNUTIL_IDENTIFIER)
 	;
@@ -6843,7 +6980,7 @@ in parentheses may include apostrophes or quotes.
 DSNUTIL_LPAREN1
 	: '('
 	{
-		DB2zSQL_debug
+		//System.out.println(getLine() + ":" + getCharPositionInLine() + "|" + getText() + "|" + " mode " + modeNames[_mode] + " prevMode " + (_modeStack.isEmpty() ? "empty" : modeNames[_modeStack.peek()]));
 	}
 	->pushMode(DSNUTIL_PAREN_MODE)
 	;
@@ -6851,7 +6988,25 @@ DSNUTIL_LPAREN1
 DSNUTIL_RPAREN1
 	: ')'
 	{
-		DB2zSQL_DSNUTIL_RPAREN1
+		//System.out.println(getLine() + ":" + getCharPositionInLine() + "|" + getText() + "|" + " mode " + modeNames[_mode] + " prevMode " + (_modeStack.isEmpty() ? "empty" : modeNames[_modeStack.peek()]));
+		switch(_modeStack.peek()) {
+			case DSNUTIL_DSN_WS_MODE :
+				popMode(); //back to DSNUTIL_DSN_WS_MODE
+				popMode(); //back to DSNUTIL_DSN_MODE
+				popMode(); //back to DSNUTIL_MODE
+				break;
+			case DSNUTIL_DSN_MODE :
+				popMode(); //back to DSNUTIL_DSN_MODE
+				popMode(); //back to DSNUTIL_MODE
+				break;
+			case DSNUTIL_DB_TS_MODE :
+				popMode(); //back to DSNUTIL_DB_TS_MODE
+				popMode(); //back to DSNUTIL_MODE
+				break;
+			default :
+				popMode(); //back to "parent" mode (which may be this mode)
+				break;
+		}
 	}
 	;
 
@@ -7365,7 +7520,20 @@ they exited.  That seemed less clear than this.
 DSNUTIL_DOUBLE_APOS1
 	: '\'\''
 	{
-		DB2zSQL_DSNUTIL_DOUBLE_APOS1
+		switch(_modeStack.peek()) {
+			case DSNUTIL_DSN_WS_MODE :
+				popMode(); //back to DSNUTIL_DSN_WS_MODE
+				popMode(); //back to DSNUTIL_DSN_MODE
+				popMode(); //back to DSNUTIL_MODE
+				break;
+			case DSNUTIL_DSN_MODE :
+				popMode(); //back to DSNUTIL_DSN_MODE
+				popMode(); //back to DSNUTIL_MODE
+				break;
+			default :
+				popMode(); //back to "parent" mode
+				break;
+		}
 	}
 	;
 
@@ -7395,7 +7563,20 @@ argument.  That's why it's important to get back to DSNUTIL_MODE.
 DSNUTIL_APOS
 	: '\''
 	{
-		DB2zSQL_DSNUTIL_APOS
+		switch(_modeStack.peek()) {
+			case DSNUTIL_DSN_WS_MODE :
+				popMode(); //back to DSNUTIL_DSN_WS_MODE
+				popMode(); //back to DSNUTIL_DSN_MODE
+				popMode(); //back to DSNUTIL_MODE
+				break;
+			case DSNUTIL_DSN_MODE :
+				popMode(); //back to DSNUTIL_DSN_MODE
+				popMode(); //back to DSNUTIL_MODE
+				break;
+			default :
+				popMode(); //back to "parent" mode
+				break;
+		}
 	}
 	;
 
@@ -7422,7 +7603,20 @@ they exited.  That seemed less clear than this.
 DSNUTIL_QUOTE1
 	: '"'
 	{
-		DB2zSQL_DSNUTIL_QUOTE1
+		switch(_modeStack.peek()) {
+			case DSNUTIL_DSN_WS_MODE :
+				popMode(); //back to DSNUTIL_DSN_WS_MODE
+				popMode(); //back to DSNUTIL_DSN_MODE
+				popMode(); //back to DSNUTIL_MODE
+				break;
+			case DSNUTIL_DSN_MODE :
+				popMode(); //back to DSNUTIL_DSN_MODE
+				popMode(); //back to DSNUTIL_MODE
+				break;
+			default :
+				popMode(); //back to DSNUTIL_MODE
+				break;
+		}
 	}
 	;
 
