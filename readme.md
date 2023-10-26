@@ -6,19 +6,38 @@ Since actions are sometimes necessary, this preprocessor seeks to allow one
 to write a grammar that "copies" or "includes" or "imports" text into the
 grammar at a specified point.
 
+This specified point is indicated by the arbitrary construct...
+
+    @AntlrPP(_fileName_)
+
+...which will itself be elided.  The embed option (which defaults to _true_)
+is used to indicate whether or not _fileName_ will be copied into the target
+stream.  If `embed N` is specified, the `@AntlrPP(...)` construct will not
+be included in the target stream and neither will the content of _fileName_.
+If `embed Y` is specified (or `embed` is not specified at all) then the
+the `@AntlrPP(...)` construct will not be included in the target stream, 
+the content of _fileName_ will be copied into the target stream, and any
+other content present in the actionBlock will be elided.
+
+The _fileName_ must not contain whitespace characters and the ending ) must
+be separated from any following characters by at least one whitespace
+character.  Yes, I'm using a regex to find the @AntlrPP construct.
+
 Code is at a proof of concept stage.
 
 Syntax:
 
-    usage: AntlrPP [-fileExt <arg>] [-help] [-inputFile <arg>] [-outputFile
-           <arg>] [-path <arg>]
+    usage: AntlrPP [-embed <arg>] [-fileExt <arg>] [-help] [-inputFile <arg>]
+           [-outputFile <arg>] [-path <arg>]
+     -embed <arg>        [Y | n] embed files or just elide embed construct
      -fileExt <arg>      extension to add to included file names, including
                          dot
      -help               print this message
      -inputFile <arg>    name of a single grammar to preprocess
      -outputFile <arg>   name of a file in which to place the preprocessed
                          grammar
-     -path <arg>         path where included files are located
+     -path <arg>         path where included files are located including
+                         trailing file system separator
      
 Provision for both a file extension and a path to find "included" files
 is provided.  It is possible a developer keeps (e.g.) both the Python and

@@ -1,7 +1,9 @@
 lexer grammar DB2zSQLLexer;
 
 @lexer::members {
-file1
+	@AntlrPP(file1)
+	public String inLexer = new String("");
+	public int alsoInLexer = 0;
 }
 
 channels { COMMENTS }
