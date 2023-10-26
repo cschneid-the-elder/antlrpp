@@ -1,4 +1,4 @@
-Attempt at a preprocessor for ANTLR4 grammars.
+Attempt at a preprocessor for ANTLR4 lexer grammars.
 
 A challenge for grammar authors is writing non-target language specific code.
 
@@ -27,8 +27,8 @@ Code is at a proof of concept stage.
 
 Syntax:
 
-    usage: AntlrPP [-embed <arg>] [-fileExt <arg>] [-help] [-inputFile <arg>]
-           [-outputFile <arg>] [-path <arg>]
+    usage: java -jar AntlrPP [-embed <arg>] [-fileExt <arg>] [-help] 
+           [-inputFile <arg>] [-outputFile <arg>] [-path <arg>]
      -embed <arg>        [Y | n] embed files or just elide embed construct
      -fileExt <arg>      extension to add to included file names, including
                          dot
