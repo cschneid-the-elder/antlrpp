@@ -15,8 +15,9 @@ is used to indicate whether or not _fileName_ will be copied into the target
 stream.  If `embed N` is specified, the `@AntlrPP(...)` construct will not
 be included in the target stream and neither will the content of _fileName_.
 If `embed Y` is specified (or `embed` is not specified at all) then the
-the `@AntlrPP(...)` construct will not be included in the target stream and 
-the content of _fileName_ will be copied into the target stream.
+the `@AntlrPP(...)` construct will not be included in the target stream, 
+the content of _fileName_ will be copied into the target stream, and any
+other content present in the actionBlock will be elided.
 
 The _fileName_ must not contain whitespace characters and the ending ) must
 be separated from any following characters by at least one whitespace

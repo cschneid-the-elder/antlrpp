@@ -11,6 +11,7 @@ public class ActionBlockListener extends ANTLRv4ParserBaseListener {
 	private int prevEndStartIndex = 0;
 	private Boolean embedFiles = true;
 	private Pattern pattern = Pattern.compile("\\v?\\h*@AntlrPP\\((?<fileName>\\S*)\\)\\h*");
+	private String currentToken = null;
 
 	public ActionBlockListener(
 			ArrayList<MungeParameters> mungeParameters
@@ -21,6 +22,10 @@ public class ActionBlockListener extends ANTLRv4ParserBaseListener {
 		this.embedFiles = embedFiles;
 	}
 
+	public void enterLexerRuleSpec(ANTLRv4Parser.LexerRuleSpecContext ctx) { 
+		this.currentToken = ctx.TOKEN_REF().getSymbol().getText();
+	}
+	
 	public void enterActionBlock(ANTLRv4Parser.ActionBlockContext ctx) {
 		int beginStopIndex = ctx.BEGIN_ACTION().getSymbol().getStopIndex();
 		int endStartIndex = ctx.END_ACTION().getSymbol().getStartIndex();
@@ -37,18 +42,7 @@ public class ActionBlockListener extends ANTLRv4ParserBaseListener {
 		Matcher matcher = this.pattern.matcher(actionTextString);
 		Boolean foundMatch = matcher.find();
 
-		/*
-		Signal that we want to copy everything from the previous end point
-		to just after the beginning '{' of this actionBlock.
-		*/
-		if (foundMatch) {
-			mungeParameters.add(
-				new MungeParameters(
-					new Interval(prevEndStartIndex, beginStopIndex)
-					, new StringBuilder("")
-					, beginStopIndex + 1));
-			prevEndStartIndex = beginStopIndex + 1;
-		} else {
+		if (embedFiles && !foundMatch) {
 			/*
 			No match found means the entire actionBlock will be elided, we
 			should notify someone.
@@ -58,7 +52,8 @@ public class ActionBlockListener extends ANTLRv4ParserBaseListener {
 					new Interval(prevEndStartIndex, beginStopIndex)
 					, new StringBuilder("")
 					, endStartIndex
-					, ctx.BEGIN_ACTION().getSymbol().getLine()));
+					, ctx.BEGIN_ACTION().getSymbol().getLine()
+					, this.currentToken));
 			prevEndStartIndex = endStartIndex;
 			return; //I know this is considered bad, but it's clear
 		}
@@ -72,6 +67,9 @@ public class ActionBlockListener extends ANTLRv4ParserBaseListener {
 		signal which portions of the actionBlock contents to copy, which
 		to throw away, and the name of the file we wish copied into
 		the output stream.
+
+		Signal that we want to copy everything from the previous end point
+		to just after the beginning '{' of this actionBlock.
 		*/
 		if (foundMatch) {
 			start = matcher.start() + beginStopIndex;
@@ -83,11 +81,14 @@ public class ActionBlockListener extends ANTLRv4ParserBaseListener {
 			mungeParameters.add(
 				new MungeParameters(new Interval(prevEndStartIndex, start)
 									, new StringBuilder(copyFileName)
-									, endStartIndex));
+									, endStartIndex
+									, this.currentToken));
 			prevEndStartIndex = end + 1;
 		}
 
-		if (!this.embedFiles) {
+		if (this.embedFiles) {
+			prevEndStartIndex = endStartIndex;
+		} else {
 			/*
 			Signal that the rest of the actionBlock should be copied into
 			the target stream.
@@ -96,10 +97,11 @@ public class ActionBlockListener extends ANTLRv4ParserBaseListener {
 				new MungeParameters(
 					new Interval(prevEndStartIndex, endStartIndex)
 					, new StringBuilder("")
-					, endStartIndex));
+					, endStartIndex
+					, this.currentToken));
+			prevEndStartIndex = endStartIndex + 1;
 		}
 		
-		prevEndStartIndex = endStartIndex;
 	}
 
 }

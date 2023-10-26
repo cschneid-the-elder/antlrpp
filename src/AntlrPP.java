@@ -71,15 +71,16 @@ public class AntlrPP {
 		Loop through the mungeParameters and copy the data to the output (a StringBuilder).
 		*/
 		for (MungeParameters mp: mungeParameters) {
-			//System.out.println("mp: " + mp);
+			System.out.println("mp: " + mp);
 			if (mp.getInterval() != null) {
 				System.out.println("processing text " + mp.getInterval());
 				outputFileContent.append(cs.getText(mp.getInterval()));
 				if (mp.getLine() > 0) {
 					System.out.println(
-						"!entire actionBlock elided at line " 
+						"!entire actionBlock for token "
+						+ mp.getTokenName()
+						+ " elided at line " 
 						+ Integer.valueOf(mp.getLine()) 
-						+ " and this is likely not what you want"
 						);
 				}
 				//System.out.println("outputFileContent = |" + outputFileContent + "|");
