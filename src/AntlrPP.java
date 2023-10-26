@@ -1,4 +1,19 @@
 
+/*Copyright (C) 2023 Craig Schneiderwent.  All rights reserved.*/
+
+/*
+ *  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ *  IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ *  OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ *  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ *  NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ *  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 import java.util.*;
 import java.io.*;
 import java.nio.file.*;
@@ -71,7 +86,6 @@ public class AntlrPP {
 		Loop through the mungeParameters and copy the data to the output (a StringBuilder).
 		*/
 		for (MungeParameters mp: mungeParameters) {
-			System.out.println("mp: " + mp);
 			if (mp.getInterval() != null) {
 				System.out.println("processing text " + mp.getInterval());
 				outputFileContent.append(cs.getText(mp.getInterval()));
@@ -83,7 +97,6 @@ public class AntlrPP {
 						+ Integer.valueOf(mp.getLine()) 
 						);
 				}
-				//System.out.println("outputFileContent = |" + outputFileContent + "|");
 			}
 			if (mp.getFileName().length() > 0) {
 				Path aPath = Paths.get(pathToFile, mp.getFileName() + fileExtension);
@@ -91,7 +104,7 @@ public class AntlrPP {
 				if (Files.exists(aPath)) {
 					outputFileContent.append(Files.readString(aPath));
 				} else {
-					System.out.println("unable to find " + aPath);
+					System.out.println("!output may be invalid - unable to find " + aPath);
 				}
 			}
 		}
@@ -106,7 +119,6 @@ public class AntlrPP {
 		Interval lastInterval = new Interval(lastStart, csEOF);
 		System.out.println("processing text " + lastInterval);
 		outputFileContent.append(cs.getText(lastInterval));
-		//System.out.println("outputFileContent = |" + outputFileContent + "|");
 		
 		System.out.println("writing " + outputFileName);
 		BufferedWriter outputFile = new BufferedWriter(new FileWriter(outputFileName));
@@ -123,7 +135,7 @@ public class AntlrPP {
 		HelpFormatter formatter = new HelpFormatter();
 		
 		Option inputFile = new Option("inputFile", true
-			, "name of a single grammar to preprocess");
+			, "name of a single lexer grammar to preprocess");
 		Option outputFile = new Option("outputFile", true
 			, "name of a file in which to place the preprocessed grammar");
 		Option path = new Option("path", true

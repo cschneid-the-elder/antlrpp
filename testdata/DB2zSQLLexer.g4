@@ -56,6 +56,7 @@ LPAREN
 	: '('
 	{
 		@AntlrPP(DB2zSQL_debug)
+		//System.out.println(getLine() + ":" + getCharPositionInLine() + "|" + getText() + "|" + " mode " + modeNames[_mode] + " prevMode " + (_modeStack.isEmpty() ? "empty" : modeNames[_modeStack.peek()]));
 	}
 	->pushMode(DEFAULT_MODE)
 	;
@@ -4565,7 +4566,7 @@ DSNUTIL_DOUBLE_QUOTE
 DSNUTIL_CLOSE_QUOTE
 	: '"'
 	{
-		@AntlrPP(DB2zSQL_DSNUTIL_CLOSE_QUOTE)
+		@AntlrPP(DB2zSQL_DSNUTIL_CLOSE_APOS)
 		dsnutil = false;
 		dsnutilArgc = 0;
 		dsnutil_dsn_ws_char = false;
@@ -5854,7 +5855,7 @@ DSNUTIL_LOAD
 DSNUTIL_LOAD_DATA
 	: L O A D (WS | NEWLINE)+ D A T A
 	{
-		@AntlrPP(DB2zSQL_LOAD)
+		@AntlrPP(DB2zSQL_DSNUTIL_LOAD)
 		dsnutilLoad = true;
 	}
 	;
@@ -6835,7 +6836,7 @@ DSNUTIL_DB_TS_WS_TERMINATING
 	: (WS | NEWLINE)+
 	{@AntlrPP(DB2zSQL_DSNUTIL_DB_TS_WS_TERMINATING_1) dsnutil_db_ts_char}?
 	{
-		@AntlrPP(DB2zSQL_DSNUTIL_DB_DS_WS_TERMINATING_2)
+		@AntlrPP(DB2zSQL_DSNUTIL_DB_TS_WS_TERMINATING_2)
 		dsnutil_db_ts_char = false;
 	}
 	->channel(HIDDEN),popMode
@@ -6943,7 +6944,7 @@ DSNUTIL_DB_TS_RPAREN
 DSNUTIL_DB_TS_DELETE
 	: DSNUTIL_DELETE
 	{
-		@AntlrPP(DB2zSQL_DSNUTIL_DB_TS_DELETE)
+		@AntlrPP(DB2zSQL_dsnutil_db_ts_char_true)
 		dsnutil_db_ts_char = true;
 	}
 	->type(DSNUTIL_DELETE)
