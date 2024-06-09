@@ -25,8 +25,9 @@ public class ActionBlockListener extends ANTLRv4ParserBaseListener {
 	private ArrayList<MungeParameters> mungeParameters;
 	private int prevEndStartIndex = 0;
 	private Boolean embedFiles = true;
-	private Pattern pattern = Pattern.compile("\\v?\\h*@AntlrPP\\((?<fileName>\\S*)\\)\\h*");
-	private String currentToken = null;
+	//private Pattern pattern = Pattern.compile("\\v?\\h*@AntlrPP\\((?<fileName>\\S*)\\)\\h*");
+	private Pattern pattern = Pattern.compile("\\h*@AntlrPP\\((?<fileName>\\S*)\\)\\h*");
+	private String currentRuleName = null;
 
 	public ActionBlockListener(
 			ArrayList<MungeParameters> mungeParameters
@@ -37,11 +38,19 @@ public class ActionBlockListener extends ANTLRv4ParserBaseListener {
 		this.embedFiles = embedFiles;
 	}
 
-	public void enterLexerRuleSpec(ANTLRv4Parser.LexerRuleSpecContext ctx) { 
-		this.currentToken = ctx.TOKEN_REF().getSymbol().getText();
+	@Override public void enterLexerRuleSpec(ANTLRv4Parser.LexerRuleSpecContext ctx) { 
+		this.currentRuleName = ctx.TOKEN_REF().getSymbol().getText();
 	}
 	
-	public void enterActionBlock(ANTLRv4Parser.ActionBlockContext ctx) {
+	@Override public void enterParserRuleSpec(ANTLRv4Parser.ParserRuleSpecContext ctx) {
+		this.currentRuleName = ctx.RULE_REF().getSymbol().getText();
+	}
+
+	@Override public void enterAction_(ANTLRv4Parser.Action_Context ctx) {
+		this.currentRuleName = ctx.identifier().getText();
+	}
+
+	@Override public void enterActionBlock(ANTLRv4Parser.ActionBlockContext ctx) {
 		int beginStopIndex = ctx.BEGIN_ACTION().getSymbol().getStopIndex();
 		int endStartIndex = ctx.END_ACTION().getSymbol().getStartIndex();
 		StringBuilder actionText = new StringBuilder();
@@ -68,7 +77,11 @@ public class ActionBlockListener extends ANTLRv4ParserBaseListener {
 					, new StringBuilder("")
 					, endStartIndex
 					, ctx.BEGIN_ACTION().getSymbol().getLine()
-					, this.currentToken));
+					, ctx.BEGIN_ACTION().getSymbol().getCharPositionInLine()
+					, ctx.END_ACTION().getSymbol().getLine()
+					, ctx.END_ACTION().getSymbol().getCharPositionInLine()
+					, true
+					, this.currentRuleName));
 			prevEndStartIndex = endStartIndex;
 			return; //I know this is considered bad, but it's clear
 		}
@@ -97,7 +110,12 @@ public class ActionBlockListener extends ANTLRv4ParserBaseListener {
 				new MungeParameters(new Interval(prevEndStartIndex, start)
 									, new StringBuilder(copyFileName)
 									, endStartIndex
-									, this.currentToken));
+									, ctx.BEGIN_ACTION().getSymbol().getLine()
+									, ctx.BEGIN_ACTION().getSymbol().getCharPositionInLine()
+									, ctx.END_ACTION().getSymbol().getLine()
+									, ctx.END_ACTION().getSymbol().getCharPositionInLine()
+									, false
+									, this.currentRuleName));
 			prevEndStartIndex = end + 1;
 		}
 
@@ -113,7 +131,7 @@ public class ActionBlockListener extends ANTLRv4ParserBaseListener {
 					new Interval(prevEndStartIndex, endStartIndex)
 					, new StringBuilder("")
 					, endStartIndex
-					, this.currentToken));
+					, this.currentRuleName));
 			prevEndStartIndex = endStartIndex + 1;
 		}
 		
