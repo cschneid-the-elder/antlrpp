@@ -49,3 +49,8 @@ jar:
 ./src/ANTLRv4Parser.tokens: ./src/ANTLRv4Lexer.tokens
 
 ./class/LexerAdaptor.class: 
+
+./class/ActionBlockListener.class: ./src/MungeParameters.java
+
+./class/AntlrPP.class: ./src/ActionBlockListener.java ./src/MungeParameters.java
+

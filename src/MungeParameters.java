@@ -23,33 +23,44 @@ public class MungeParameters {
 	private Interval interval = null;
 	private String fileName = null;
 	private int endStartIndex = -1;
-	private int line = -1;
-	private String tokenName = null;
+	private int startLine = -1;
+	private int startPosn = -1;
+	private int endLine = -1;
+	private int endPosn = -1;
+	private String ruleName = null;
+	private Boolean entireActionBlockElided = false;
 	
 	public MungeParameters(
 		Interval interval
 		, StringBuilder fileName
 		, int endStartIndex
-		, String tokenName) {
+		, String ruleName) {
 
 		this.interval = interval;
 		this.fileName = fileName.substring(0).trim();
 		this.endStartIndex = endStartIndex;
-		this.tokenName = tokenName;
+		this.ruleName = ruleName;
 	}
 
 	public MungeParameters(
 		Interval interval
 		, StringBuilder fileName
 		, int endStartIndex
-		, int line
-		, String tokenName) {
+		, int startLine
+		, int startPosn
+		, int endLine
+		, int endPosn
+		, Boolean entireActionBlockElided
+		, String ruleName) {
 
 		this.interval = interval;
 		this.fileName = fileName.substring(0).trim();
 		this.endStartIndex = endStartIndex;
-		this.line = line;
-		this.tokenName = tokenName;
+		this.startLine = startLine;
+		this.startPosn = startPosn;
+		this.endLine = endLine;
+		this.endPosn = endPosn;
+		this.ruleName = ruleName;
 	}
 
 	public Interval getInterval() {
@@ -64,21 +75,32 @@ public class MungeParameters {
 		return this.endStartIndex;
 	}
 	
-	public int getLine() {
-		return this.line;
+	public int getStartLine() {
+		return this.startLine;
 	}
 	
-	public String getTokenName() {
-		return this.tokenName;
+	public int getStartPosn() {
+		return this.startPosn;
+	}
+	
+	public String getRuleName() {
+		return this.ruleName;
 	}
 
+	public Boolean getEntireActionBlockElided() {
+		return this.entireActionBlockElided;
+	}
+	
 	public String toString() {
 		return
-			this.tokenName 
+			this.ruleName 
 			+ " " + this.interval.toString()
 			+ " " + this.fileName
 			+ " " + Integer.valueOf(this.endStartIndex)
-			+ " " + Integer.valueOf(this.line)
+			+ " " + Integer.valueOf(this.startLine)
+			+ " " + Integer.valueOf(this.startPosn)
+			+ " " + Integer.valueOf(this.endLine)
+			+ " " + Integer.valueOf(this.endPosn)
 			;
 	}
 

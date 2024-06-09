@@ -87,14 +87,15 @@ public class AntlrPP {
 		*/
 		for (MungeParameters mp: mungeParameters) {
 			if (mp.getInterval() != null) {
-				System.out.println("processing text " + mp.getInterval());
+				//System.out.println("processing text " + mp.getInterval());
+				System.out.println("processing text " + mp);
 				outputFileContent.append(cs.getText(mp.getInterval()));
-				if (mp.getLine() > 0) {
+				if (mp.getEntireActionBlockElided()) {
 					System.out.println(
 						"!entire actionBlock for token "
-						+ mp.getTokenName()
+						+ mp.getRuleName()
 						+ " elided at line " 
-						+ Integer.valueOf(mp.getLine()) 
+						+ Integer.valueOf(mp.getStartLine()) 
 						);
 				}
 			}
@@ -102,7 +103,8 @@ public class AntlrPP {
 				Path aPath = Paths.get(pathToFile, mp.getFileName() + fileExtension);
 				System.out.println("processing " + aPath);
 				if (Files.exists(aPath)) {
-					outputFileContent.append(Files.readString(aPath));
+					String aString = Files.readString(aPath);
+					outputFileContent.append(aString);
 				} else {
 					System.out.println("!output may be invalid - unable to find " + aPath);
 				}
@@ -116,6 +118,11 @@ public class AntlrPP {
 		int mpSize = mungeParameters.size();
 		mpSize--;
 		int lastStart = mungeParameters.get(mpSize).getEndStartIndex();
+		if (embedFiles) {
+			lastStart--;
+		} else {
+			lastStart++;
+		}
 		Interval lastInterval = new Interval(lastStart, csEOF);
 		System.out.println("processing text " + lastInterval);
 		outputFileContent.append(cs.getText(lastInterval));
